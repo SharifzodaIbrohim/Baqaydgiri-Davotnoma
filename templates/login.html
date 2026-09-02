@@ -1,0 +1,27 @@
+<!DOCTYPE html>
+<html lang="tg">
+<head>
+  <meta charset="utf-8"/>
+  <meta name="viewport" content="width=device-width, initial-scale=1"/>
+  <title>Воридшавӣ — Бақайдгирӣ-Даъватнома</title>
+  <link rel="stylesheet" href="/static/css/admin.css"/>
+</head>
+<body class="login-page">
+  <div class="login-card">
+    <div class="login-brand">БАҚАЙДГИРӢ · ДАЪВАТНОМА</div>
+    <h1>Воридшавӣ</h1>
+    <p class="muted">Системаи офлайн барои қайди иштирокчиён</p>
+    <form id="loginForm">
+      <label>Номи корбар
+        <input type="text" name="username" autocomplete="username" required autofocus/>
+      </label>
+      <label>Парол
+        <input type="password" name="password" autocomplete="current-password" required/>
+      </label>
+      <button type="submit" class="btn primary">Даромадан</button>
+      <p id="loginError" class="error" hidden></p>
+    </form>
+  </div>
+  <script src="/static/js/app.js"></script>
+</body>
+</html>
