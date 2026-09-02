@@ -16,6 +16,7 @@ DATA_DIR = BASE_DIR / "data"
 PHOTOS_DIR = DATA_DIR / "photos"
 EXPORTS_DIR = DATA_DIR / "exports"
 DB_PATH = DATA_DIR / "app.db"
+# BASE_DIR already defined above — re-export for server imports
 
 # Ensure runtime folders exist
 PHOTOS_DIR.mkdir(parents=True, exist_ok=True)
