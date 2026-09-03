@@ -3,34 +3,35 @@
   "use strict";
 
   const tbody = document.querySelector("#resultsTable tbody");
-  const fSchool = document.getElementById("fSchool");
-  const fClass = document.getElementById("fClass");
-  const fSubject = document.getElementById("fSubject");
-  const fOlympiad = document.getElementById("fOlympiad");
-  const fStatus = document.getElementById("fStatus");
-  const fQ = document.getElementById("fQ");
-  const btnFilter = document.getElementById("btnFilter");
-  const btnExport = document.getElementById("btnExport");
+  const passPct = window.PASS_PERCENT || 70;
 
   function fullName(r) {
     return [r.last_name, r.first_name, r.patronymic].filter(Boolean).join(" ");
   }
 
-  function queryParams() {
-    const p = new URLSearchParams();
-    if (fSchool.value.trim()) p.set("school", fSchool.value.trim());
-    if (fClass.value.trim()) p.set("class", fClass.value.trim());
-    if (fSubject.value) p.set("subject", fSubject.value);
-    if (fOlympiad.value.trim()) p.set("olympiad", fOlympiad.value.trim());
-    if (fStatus.value) p.set("status", fStatus.value);
-    if (fQ.value.trim()) p.set("q", fQ.value.trim());
-    return p.toString();
+  function statusClass(st) {
+    if (st === "Гузашт") return "status-pass";
+    if (st === "Нагузашт") return "status-fail";
+    return "";
   }
 
   async function loadResults() {
+    const params = new URLSearchParams();
+    const school = document.getElementById("fSchool").value.trim();
+    const cls = document.getElementById("fClass").value.trim();
+    const subject = document.getElementById("fSubject").value;
+    const olympiad = document.getElementById("fOlympiad").value.trim();
+    const status = document.getElementById("fStatus").value;
+    const q = document.getElementById("fQ").value.trim();
+    if (school) params.set("school", school);
+    if (cls) params.set("class", cls);
+    if (subject) params.set("subject", subject);
+    if (olympiad) params.set("olympiad", olympiad);
+    if (status) params.set("status", status);
+    if (q) params.set("q", q);
+
     try {
-      const qs = queryParams();
-      const res = await fetch("/api/results" + (qs ? "?" + qs : ""));
+      const res = await fetch("/api/results?" + params.toString());
       const data = await res.json();
       if (!data.ok) return;
       render(data.results || []);
@@ -41,89 +42,112 @@
 
   function render(rows) {
     tbody.innerHTML = "";
+    if (!rows.length) {
+      tbody.innerHTML = '<tr><td colspan="11" style="text-align:center;color:#5a7a6e">Сабт нест</td></tr>';
+      return;
+    }
     rows.forEach((r) => {
       const tr = document.createElement("tr");
-      const statusCls =
-        r.status === "Гузашт"
-          ? "status-pass"
-          : r.status === "Нагузашт"
-          ? "status-fail"
-          : "";
+      const score = r.score != null ? r.score : "";
+      const maxS = r.max_score != null ? r.max_score : 100;
+      const pct = r.percent != null ? r.percent : "";
+      const st = r.status || "";
       tr.innerHTML =
-        "<td>" +
-        fullName(r) +
-        "</td>" +
-        '<td class="id-cell">' +
-        (r.student_id || "") +
-        "</td>" +
-        "<td>" +
-        (r.school || "") +
-        "</td>" +
-        "<td>" +
-        (r.class_name || "") +
-        "</td>" +
-        "<td>" +
-        (r.subject || "") +
-        "</td>" +
-        "<td>" +
-        (r.olympiad_title || "") +
-        "</td>" +
-        '<td><input class="score-edit" type="number" step="0.01" value="' +
-        (r.score != null ? r.score : "") +
-        '" data-id="' +
-        r.student_id +
-        '"/></td>' +
-        "<td>" +
-        (r.max_score != null ? r.max_score : 100) +
-        "</td>" +
-        "<td>" +
-        (r.percent != null ? r.percent : "") +
-        "</td>" +
-        '<td class="' +
-        statusCls +
-        '">' +
-        (r.status || "") +
-        "</td>" +
-        "<td>" +
-        (r.scored_at || "") +
-        "</td>";
+        "<td>" + esc(fullName(r)) + "</td>" +
+        '<td class="mono">' + esc(r.student_id) + "</td>" +
+        "<td>" + esc(r.school) + "</td>" +
+        "<td>" + esc(r.class_name) + "</td>" +
+        "<td>" + esc(r.subject) + "</td>" +
+        "<td>" + esc(r.olympiad_title) + "</td>" +
+        '<td><input class="score-input" type="number" step="0.5" value="' + esc(score) + '" data-id="' + esc(r.student_id) + '"/></td>' +
+        '<td><input class="max-input" type="number" step="1" value="' + esc(maxS) + '" data-id="' + esc(r.student_id) + '"/></td>' +
+        '<td class="pct-cell">' + (pct !== "" ? pct + "%" : "—") + "</td>" +
+        '<td class="status-cell ' + statusClass(st) + '">' + esc(st || "—") + "</td>" +
+        "<td>" + esc(r.scored_at || "") + "</td>";
+      tbody.appendChild(tr);
+    });
 
-      const inp = tr.querySelector(".score-edit");
-      inp.addEventListener("change", async () => {
-        const score = inp.value;
-        const body = {
-          score: score === "" ? null : parseFloat(score),
-          maxScore: r.max_score != null ? r.max_score : 100,
-        };
-        try {
-          const res = await fetch("/api/results/" + r.student_id, {
-            method: "PUT",
-            headers: { "Content-Type": "application/json" },
-            body: JSON.stringify(body),
-          });
-          const data = await res.json();
-          if (data.ok) loadResults();
-        } catch (e) {
-          console.error(e);
+    tbody.querySelectorAll(".score-input, .max-input").forEach((inp) => {
+      inp.addEventListener("change", () => saveRow(inp.dataset.id, inp.closest("tr")));
+      inp.addEventListener("keydown", (ev) => {
+        if (ev.key === "Enter") {
+          ev.preventDefault();
+          saveRow(inp.dataset.id, inp.closest("tr"));
         }
       });
-
-      tbody.appendChild(tr);
     });
   }
 
-  btnFilter.addEventListener("click", loadResults);
-  btnExport.addEventListener("click", () => {
-    const qs = queryParams();
-    window.location.href = "/api/results/export.xlsx" + (qs ? "?" + qs : "");
-  });
+  async function saveRow(studentId, tr) {
+    const scoreInp = tr.querySelector(".score-input");
+    const maxInp = tr.querySelector(".max-input");
+    const score = scoreInp.value === "" ? null : Number(scoreInp.value);
+    const maxScore = maxInp.value === "" ? 100 : Number(maxInp.value);
+    try {
+      const res = await fetch("/api/results/" + encodeURIComponent(studentId), {
+        method: "PUT",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ score, maxScore }),
+      });
+      const data = await res.json();
+      if (!data.ok) {
+        alert(data.error || "Хато");
+        return;
+      }
+      const r = data.result;
+      tr.querySelector(".pct-cell").textContent =
+        r.percent != null ? r.percent + "%" : "—";
+      const stCell = tr.querySelector(".status-cell");
+      stCell.textContent = r.status || "—";
+      stCell.className = "status-cell " + statusClass(r.status);
+      tr.cells[tr.cells.length - 1].textContent = r.scored_at || "";
+    } catch (e) {
+      alert("Хато: " + e.message);
+    }
+  }
 
-  // reload when switching to results tab
-  document.querySelectorAll(".tab").forEach((tab) => {
-    tab.addEventListener("click", () => {
-      if (tab.dataset.tab === "results") loadResults();
+  function esc(t) {
+    const d = document.createElement("div");
+    d.textContent = t == null ? "" : String(t);
+    return d.innerHTML;
+  }
+
+  document.getElementById("btnFilter").addEventListener("click", loadResults);
+  let filterTimer = null;
+  function scheduleFilter() {
+    clearTimeout(filterTimer);
+    filterTimer = setTimeout(loadResults, 280);
+  }
+  ["fSchool", "fClass", "fSubject", "fOlympiad", "fStatus", "fQ"].forEach((id) => {
+    const el = document.getElementById(id);
+    if (!el) return;
+    el.addEventListener("keydown", (e) => {
+      if (e.key === "Enter") {
+        e.preventDefault();
+        loadResults();
+      }
     });
+    el.addEventListener("input", scheduleFilter);
+    el.addEventListener("change", loadResults);
   });
 
+  document.getElementById("btnExport").addEventListener("click", () => {
+    const params = new URLSearchParams();
+    const school = document.getElementById("fSchool").value.trim();
+    const cls = document.getElementById("fClass").value.trim();
+    const subject = document.getElementById("fSubject").value;
+    const olympiad = document.getElementById("fOlympiad").value.trim();
+    const status = document.getElementById("fStatus").value;
+    const q = document.getElementById("fQ").value.trim();
+    if (school) params.set("school", school);
+    if (cls) params.set("class", cls);
+    if (subject) params.set("subject", subject);
+    if (olympiad) params.set("olympiad", olympiad);
+    if (status) params.set("status", status);
+    if (q) params.set("q", q);
+    window.location.href = "/api/results/export.xlsx?" + params.toString();
+  });
+
+  window.loadResults = loadResults;
   loadResults();
 })();
