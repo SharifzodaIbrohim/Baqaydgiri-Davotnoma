@@ -13,30 +13,33 @@
 <body>
   <div class="page">
     <div class="toolbar no-print">
-      <button type="button" onclick="window.print()">🖨 Чоп / Save as PDF</button>
+      <button type="button" onclick="window.print()">🖨 Чоп / PDF</button>
       <button type="button" onclick="window.close()">Пӯшидан</button>
     </div>
+    <p class="hint no-print">Чоп: Headers and footers-ро хомӯш кунед · Margins: Default</p>
 
     <article class="pass">
       <header class="head">
-        <div class="logos">
+        <div class="head-row">
           {% if for_save and logo_left_uri %}
-          <img class="logo-left" src="{{ logo_left_uri }}" alt=""/>
+          <img class="head-logo" src="{{ logo_left_uri }}" alt=""/>
           {% else %}
-          <img class="logo-left" src="/static/img/logo-left.jpg" alt="" onerror="this.style.display='none'"/>
+          <img class="head-logo" src="/static/img/logo-left.jpg" alt="" onerror="this.style.visibility='hidden'"/>
           {% endif %}
           <div class="head-center">
-            <div class="brand">GEOGRAFIA</div>
+            <div class="brand">GEOGRAFIA.TJ</div>
             <div class="badge">ДАЪВАТНОМА · ИҶОЗАТНОМА</div>
             <h1>Даъватнома</h1>
+            <p class="tagline">МУАССИСАИ ДАВЛАТИИ «МАРКАЗИ ДАРЁФТ ВА РУШДИ ИСТЕЪДОДҲО»-И ШАҲРИ БОХТАР</p>
           </div>
           {% if for_save and logo_right_uri %}
-          <img class="logo-right" src="{{ logo_right_uri }}" alt=""/>
+          <img class="head-logo" src="{{ logo_right_uri }}" alt=""/>
           {% else %}
-          <img class="logo-right" src="/static/img/logo-right.jpg" alt="" onerror="this.style.display='none'"/>
+          <img class="head-logo" src="/static/img/logo-right.jpg" alt="" onerror="this.style.visibility='hidden'"/>
           {% endif %}
         </div>
       </header>
+
       <div class="gold-line"></div>
 
       <div class="body">
@@ -52,27 +55,29 @@
           {% else %}
           <div class="photo-wrap placeholder"><span>Бе сурат</span></div>
           {% endif %}
+
           <div class="meta">
             <div class="id-label">ID-и иштирокчӣ</div>
             <div class="idbox">{{ s.id }}</div>
             <p class="name">{{ full_name }}</p>
             <p class="sub">{{ s.school }} · синфи {{ s.class_name }}</p>
-            <div class="chips">
-              <span class="chip">{{ s.subject }}</span>
-              {% if s.gender %}<span class="chip">{{ s.gender }}</span>{% endif %}
+            <div class="pills">
+              {% if s.subject %}<span class="pill">{{ s.subject }}</span>{% endif %}
+              {% if s.gender %}<span class="pill">{{ s.gender }}</span>{% endif %}
+              {% if s.olympiad_date %}<span class="pill">Сана: {{ s.olympiad_date }}</span>{% endif %}
             </div>
           </div>
         </div>
 
         <table>
-          <tr><th>ID</th><td>{{ s.id }}</td></tr>
+          <tr><th>ID-и иштирокчӣ</th><td>{{ s.id }}</td></tr>
           <tr><th>Насаб</th><td>{{ s.last_name }}</td></tr>
           <tr><th>Ном</th><td>{{ s.first_name }}</td></tr>
           <tr><th>Номи падар</th><td>{{ s.patronymic or '—' }}</td></tr>
           <tr><th>Ҷинс</th><td>{{ s.gender }}</td></tr>
           <tr><th>Таваллуд</th><td>{{ s.birth_date or '—' }}</td></tr>
           <tr><th>Суроға</th><td>{{ s.address or '—' }}</td></tr>
-          <tr><th>Муассиса</th><td>{{ s.school }}</td></tr>
+          <tr><th>Муассисаи таълимӣ</th><td>{{ s.school }}</td></tr>
           <tr><th>Синф</th><td>{{ s.class_name }}</td></tr>
           <tr><th>Омӯзгор</th><td>{{ s.teacher or '—' }}</td></tr>
           <tr><th>Фанни имтиҳонсупорӣ</th><td>{{ s.subject }}</td></tr>
@@ -82,8 +87,8 @@
       </div>
 
       <footer class="foot">
-        <p class="seal">МУАССИСАИ ДАВЛАТИИ «МАРКАЗИ ДАРЁФТ ВА РУШДИ ИСТЕЪДОДҲО»-И ШАҲРИ БОХТАР</p>
-        <p class="note">Ҳуҷҷати расмии иштирокчи дар олимпиада</p>
+        <p class="foot-seal">МУАССИСАИ ДАВЛАТИИ «МАРКАЗИ ДАРЁФТ ВА РУШДИ ИСТЕЪДОДҲО»-И ШАҲРИ БОХТАР</p>
+        <p class="foot-note">Ҳуҷҷати расмии иштирокчи дар олимпиада</p>
       </footer>
     </article>
   </div>
