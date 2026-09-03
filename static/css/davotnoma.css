@@ -116,15 +116,9 @@ body {
   text-align: center;
 }
 
-.brand {
-  font-size: 0.95rem;
-  letter-spacing: 0.3em;
-  font-weight: 800;
-}
-
 .badge {
   display: inline-block;
-  margin-top: 8px;
+  margin-top: 4px;
   background: linear-gradient(90deg, var(--gold), var(--gold2), var(--gold));
   color: var(--g1);
   padding: 5px 16px;
@@ -287,21 +281,59 @@ tr:nth-child(even) td {
   z-index: 1;
 }
 
-.foot-seal {
+.qr-title {
   text-align: center;
+  font-size: 0.8rem;
+  font-weight: 700;
+  color: var(--muted);
+  letter-spacing: 0.06em;
+  margin-bottom: 10px;
+}
+
+.qr-row {
+  display: flex;
+  gap: 32px;
+  flex-wrap: wrap;
+  justify-content: center;
+}
+
+.qr {
+  text-align: center;
+  width: 120px;
+}
+
+.qr img {
+  width: 104px;
+  height: 104px;
+  object-fit: contain;
+  border-radius: 8px;
+  border: 1px solid var(--border);
+  background: #fff;
+  padding: 4px;
+}
+
+.qr .lbl {
+  margin-top: 6px;
+  font-size: 0.8rem;
   font-weight: 800;
-  font-size: 0.82rem;
   color: var(--g1);
-  letter-spacing: 0.02em;
-  line-height: 1.4;
-  margin-bottom: 6px;
+}
+
+.qr .url {
+  font-size: 0.66rem;
+  color: var(--muted);
+  word-break: break-all;
 }
 
 .foot-note {
   text-align: center;
-  font-size: 0.78rem;
-  color: var(--muted);
-  font-weight: 600;
+  margin-top: 14px;
+  padding-top: 10px;
+  border-top: 1px solid #d4e5db;
+  font-size: 0.82rem;
+  font-weight: 700;
+  color: var(--g1);
+  letter-spacing: 0.02em;
 }
 
 @media print {
@@ -331,6 +363,10 @@ tr:nth-child(even) td {
   .head {
     page-break-inside: avoid;
     break-inside: avoid;
+  }
+  .qr img {
+    width: 96px;
+    height: 96px;
   }
   .photo-wrap {
     width: 126px;
