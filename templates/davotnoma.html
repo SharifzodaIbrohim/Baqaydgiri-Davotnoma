@@ -27,7 +27,6 @@
           <img class="head-logo" src="/static/img/logo-left.jpg" alt="" onerror="this.style.visibility='hidden'"/>
           {% endif %}
           <div class="head-center">
-            <div class="brand">GEOGRAFIA.TJ</div>
             <div class="badge">ДАЪВАТНОМА · ИҶОЗАТНОМА</div>
             <h1>Даъватнома</h1>
             <p class="tagline">МУАССИСАИ ДАВЛАТИИ «МАРКАЗИ ДАРЁФТ ВА РУШДИ ИСТЕЪДОДҲО»-И ШАҲРИ БОХТАР</p>
@@ -60,11 +59,11 @@
             <div class="id-label">ID-и иштирокчӣ</div>
             <div class="idbox">{{ s.id }}</div>
             <p class="name">{{ full_name }}</p>
-            <p class="sub">{{ s.school }} · синфи {{ s.class_name }}</p>
+            <p class="sub">{% if s.olympiad_title %}{{ s.olympiad_title }}{% else %}{{ s.school }} · синфи {{ s.class_name }}{% endif %}</p>
             <div class="pills">
-              {% if s.subject %}<span class="pill">{{ s.subject }}</span>{% endif %}
               {% if s.gender %}<span class="pill">{{ s.gender }}</span>{% endif %}
-              {% if s.olympiad_date %}<span class="pill">Сана: {{ s.olympiad_date }}</span>{% endif %}
+              {% if s.olympiad_date %}<span class="pill">Санаи имтиҳонсупорӣ: {{ s.olympiad_date }}</span>{% endif %}
+              {% if s.subject %}<span class="pill">{{ s.subject }}</span>{% endif %}
             </div>
           </div>
         </div>
@@ -82,12 +81,24 @@
           <tr><th>Омӯзгор</th><td>{{ s.teacher or '—' }}</td></tr>
           <tr><th>Фанни имтиҳонсупорӣ</th><td>{{ s.subject }}</td></tr>
           <tr><th>Намуди олимпиада</th><td>{{ s.olympiad_title or '—' }}</td></tr>
-          <tr><th>Санаи оғоз / бақайдгирӣ</th><td>{{ s.olympiad_date or s.created_at or '—' }}</td></tr>
+          <tr><th>Санаи бақайдгирӣ</th><td>{{ s.olympiad_date or s.created_at or '—' }}</td></tr>
         </table>
       </div>
 
       <footer class="foot">
-        <p class="foot-seal">МУАССИСАИ ДАВЛАТИИ «МАРКАЗИ ДАРЁФТ ВА РУШДИ ИСТЕЪДОДҲО»-И ШАҲРИ БОХТАР</p>
+        <div class="qr-title">Пайвандҳо · QR</div>
+        <div class="qr-row">
+          <div class="qr">
+            <img src="https://api.qrserver.com/v1/create-qr-code/?size=120x120&amp;margin=4&amp;color=000000&amp;bgcolor=ffffff&amp;data=https%3A%2F%2Fwww.instagram.com%2Fgeografia.tj%2F" alt="Instagram"/>
+            <div class="lbl">📷 Instagram</div>
+            <div class="url">instagram.com/geografia.tj</div>
+          </div>
+          <div class="qr">
+            <img src="https://api.qrserver.com/v1/create-qr-code/?size=120x120&amp;margin=6&amp;color=0b3d2e&amp;bgcolor=ffffff&amp;data=https%3A%2F%2Fgeografia-19tf.onrender.com" alt="Web"/>
+            <div class="lbl">🌐 Веб</div>
+            <div class="url">geografia-19tf.onrender.com</div>
+          </div>
+        </div>
         <p class="foot-note">Ҳуҷҷати расмии иштирокчи дар олимпиада</p>
       </footer>
     </article>
