@@ -1,0 +1,148 @@
+<!DOCTYPE html>
+<html lang="tg">
+<head>
+  <meta charset="utf-8"/>
+  <meta name="viewport" content="width=device-width, initial-scale=1"/>
+  <title>Админ — Бақайдгирӣ-Даъватнома</title>
+  <link rel="stylesheet" href="/static/css/admin.css"/>
+</head>
+<body>
+  <header class="topbar">
+    <div class="brand">БАҚАЙДГИРӢ · ДАЪВАТНОМА</div>
+    <nav class="tabs">
+      <button type="button" class="tab active" data-tab="register">Бақайдгирӣ</button>
+      <button type="button" class="tab" data-tab="results">Натиҷаҳо</button>
+    </nav>
+    <button type="button" id="btnLogout" class="btn ghost">Баромадан</button>
+  </header>
+
+  <main>
+    <!-- ========== TAB: REGISTER ========== -->
+    <section id="tab-register" class="tab-panel active">
+      <div class="grid-2">
+        <div class="card">
+          <h2>Бақайдгирии хонанда</h2>
+          <form id="regForm" enctype="multipart/form-data">
+            <div class="form-grid">
+              <label>Насаб *<input name="last_name" required/></label>
+              <label>Ном *<input name="first_name" required/></label>
+              <label>Номи падар<input name="patronymic"/></label>
+              <label>Рӯз.Моҳ.Сол таваллуд<input name="birth_date" placeholder="01.01.2010" type="text"/></label>
+              <label class="full">Суроға<input name="address"/></label>
+              <label>Муассиса / Мактаб *<input name="school" required/></label>
+              <label>Синф *<input name="class_name" required placeholder="10б"/></label>
+              <label>Омӯзгор<input name="teacher"/></label>
+              <label>Ҷинс *
+                <select name="gender" required>
+                  <option value="">— интихоб —</option>
+                  <option value="Мард">Мард</option>
+                  <option value="Зан">Зан</option>
+                </select>
+              </label>
+              <label>Фанни имтиҳонсупорӣ *
+                <select name="subject" required>
+                  <option value="">— интихоб —</option>
+                  {% for sub in subjects %}
+                  <option value="{{ sub }}">{{ sub }}</option>
+                  {% endfor %}
+                </select>
+              </label>
+              <label>Унвони олимпиада<input name="olympiad_title"/></label>
+              <label>Санаи оғози олимпиада<input name="olympiad_date" type="text" placeholder="02.09.2026"/></label>
+            </div>
+
+            <fieldset class="photo-box">
+              <legend>Сурат (JPG)</legend>
+              <div class="photo-controls">
+                <select id="cameraSelect"><option value="">— камера —</option></select>
+                <button type="button" id="btnStartCam" class="btn">Камераро оғоз</button>
+                <button type="button" id="btnSnap" class="btn" disabled>Гирифтани сурат</button>
+                <label class="btn file-btn">Choose File
+                  <input type="file" id="photoFile" accept="image/jpeg,image/png,image/webp" hidden/>
+                </label>
+                <button type="button" id="btnClearPhoto" class="btn ghost">Тоза</button>
+              </div>
+              <div class="photo-preview-row">
+                <video id="camVideo" autoplay playsinline muted hidden></video>
+                <canvas id="camCanvas" hidden></canvas>
+                <img id="photoPreview" alt="Сурат" hidden/>
+              </div>
+              <input type="hidden" name="photo_base64" id="photoBase64"/>
+            </fieldset>
+
+            <div class="form-actions">
+              <button type="submit" class="btn primary" id="btnRegister">Бақайдгирӣ + Сохтани ID</button>
+              <button type="button" class="btn" id="btnSaveLocal" disabled>Захираи варақаҳо (1+2)</button>
+            </div>
+            <p id="regMsg" class="msg" hidden></p>
+          </form>
+        </div>
+
+        <div class="card">
+          <h2>Рӯйхати хонандагон</h2>
+          <div class="list-toolbar">
+            <input type="search" id="studentSearch" placeholder="Ҷустуҷӯи ном / ID…"/>
+            <button type="button" class="btn" id="btnRefreshStudents">Навсозӣ</button>
+          </div>
+          <div id="studentList" class="student-list"></div>
+        </div>
+      </div>
+    </section>
+
+    <!-- ========== TAB: RESULTS ========== -->
+    <section id="tab-results" class="tab-panel">
+      <div class="card">
+        <h2>Натиҷаҳо (дастӣ)</h2>
+        <div class="filters">
+          <input type="text" id="fSchool" placeholder="Мактаб"/>
+          <input type="text" id="fClass" placeholder="Синф"/>
+          <select id="fSubject">
+            <option value="">Ҳама фанҳо</option>
+            {% for sub in subjects %}
+            <option value="{{ sub }}">{{ sub }}</option>
+            {% endfor %}
+          </select>
+          <input type="text" id="fOlympiad" placeholder="Олимпиада"/>
+          <select id="fStatus">
+            <option value="">Ҳама статус</option>
+            <option value="Гузашт">Гузашт</option>
+            <option value="Нагузашт">Нагузашт</option>
+          </select>
+          <input type="search" id="fQ" placeholder="Ном / ID"/>
+          <button type="button" class="btn" id="btnFilter">Филтр</button>
+          <button type="button" class="btn primary" id="btnExport">Export .xlsx</button>
+        </div>
+        <p class="hint">Ҳадди гузаштан: {{ pass_percent }}%. Холро клик карда тағйир диҳед.</p>
+        <div class="table-wrap">
+          <table id="resultsTable">
+            <thead>
+              <tr>
+                <th>Ном</th>
+                <th>Student ID</th>
+                <th>Мактаб</th>
+                <th>Синф</th>
+                <th>Фан</th>
+                <th>Олимпиада</th>
+                <th>Хол</th>
+                <th>Макс</th>
+                <th>Фоиз</th>
+                <th>Статус</th>
+                <th>Санаи хол</th>
+              </tr>
+            </thead>
+            <tbody></tbody>
+          </table>
+        </div>
+      </div>
+    </section>
+  </main>
+
+  <script>
+    window.PASS_PERCENT = {{ pass_percent }};
+  </script>
+  <script src="/static/js/app.js"></script>
+  <script src="/static/js/register.js"></script>
+  <script src="/static/js/results.js"></script>
+  <script src="/static/js/davotnoma.js"></script>
+</body>
+</html>
