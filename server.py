@@ -26,14 +26,12 @@ import db
 from utils.export_xlsx import build_results_xlsx
 from utils.ids import generate_student_id
 from utils.photos import save_photo_base64, save_photo_file
+from utils.dates import format_tj_date
 
 app = Flask(__name__)
 app.secret_key = config.SECRET_KEY
 app.config["MAX_CONTENT_LENGTH"] = 8 * 1024 * 1024  # 8 MB photos
 
-# ---------------------------------------------------------------------------
-# Auth helpers
-# ---------------------------------------------------------------------------
 
 def login_required(fn):
     from functools import wraps
@@ -48,10 +46,6 @@ def login_required(fn):
 
     return wrapper
 
-
-# ---------------------------------------------------------------------------
-# Pages
-# ---------------------------------------------------------------------------
 
 @app.route("/")
 def index():
@@ -77,10 +71,6 @@ def admin_page():
     )
 
 
-# ---------------------------------------------------------------------------
-# Auth API
-# ---------------------------------------------------------------------------
-
 @app.route("/api/login", methods=["POST"])
 def api_login():
     data = request.get_json(silent=True) or {}
@@ -99,10 +89,6 @@ def api_logout():
     return jsonify({"ok": True})
 
 
-# ---------------------------------------------------------------------------
-# Students API
-# ---------------------------------------------------------------------------
-
 @app.route("/api/students", methods=["GET"])
 @login_required
 def api_list_students():
@@ -112,7 +98,6 @@ def api_list_students():
 @app.route("/api/students", methods=["POST"])
 @login_required
 def api_create_student():
-    # Support both JSON (base64 photo) and multipart
     if request.content_type and "multipart/form-data" in request.content_type:
         form = request.form
         data = {k: (form.get(k) or "").strip() for k in (
@@ -141,7 +126,6 @@ def api_create_student():
     if data["subject"] not in config.SUBJECTS:
         return jsonify({"ok": False, "error": "Фанни нодуруст"}), 400
 
-    # Unique ID
     for _ in range(20):
         sid = generate_student_id(18)
         if db.get_student(sid) is None:
@@ -167,7 +151,6 @@ def api_delete_student(student_id: str):
     st = db.get_student(student_id)
     if not st:
         return jsonify({"ok": False, "error": "Ёфт нашуд"}), 404
-    # remove photo file
     if st.get("photo_path"):
         p = config.DATA_DIR / st["photo_path"]
         if p.is_file():
@@ -179,15 +162,28 @@ def api_delete_student(student_id: str):
     return jsonify({"ok": True})
 
 
+def _student_for_template(st: dict) -> dict:
+    """Copy student and format dates for display."""
+    out = dict(st)
+    out["birth_date"] = format_tj_date(st.get("birth_date") or "") or (st.get("birth_date") or "")
+    out["olympiad_date"] = format_tj_date(st.get("olympiad_date") or "") or (st.get("olympiad_date") or "")
+    if st.get("created_at"):
+        out["created_at_fmt"] = format_tj_date(st.get("created_at"))
+    else:
+        out["created_at_fmt"] = ""
+    return out
+
+
 @app.route("/api/students/<student_id>/davotnoma")
 @login_required
 def api_davotnoma(student_id: str):
     st = db.get_student(student_id)
     if not st:
         return "Хонанда ёфт нашуд", 404
+    s = _student_for_template(st)
     return render_template(
         "davotnoma.html",
-        s=st,
+        s=s,
         full_name=db.full_name(st),
     )
 
@@ -229,16 +225,16 @@ def api_save_local(student_id: str):
     photo_uri = ""
     if st.get("photo_path"):
         photo_abs = config.DATA_DIR / st["photo_path"]
-        # photo_path is like "photos/xxx.jpg"
         if not photo_abs.is_file():
             photo_abs = config.BASE_DIR / "data" / st["photo_path"]
         ext = photo_abs.suffix.lower().lstrip(".") or "jpeg"
         mime = "image/jpeg" if ext in ("jpg", "jpeg") else f"image/{ext}"
         photo_uri = _file_data_uri(photo_abs, mime)
 
+    s_fmt = _student_for_template(st)
     dav_html = render_template(
         "davotnoma.html",
-        s=st,
+        s=s_fmt,
         full_name=db.full_name(st),
         for_save=True,
         inline_css=css_text,
@@ -246,7 +242,7 @@ def api_save_local(student_id: str):
         logo_right_uri=logo_right,
         photo_uri=photo_uri,
     )
-    exam_html = render_template("exam_sheet.html", s=st, for_save=True)
+    exam_html = render_template("exam_sheet.html", s=s_fmt, for_save=True)
 
     dav_name = f"Davotnoma_{student_id}_{name_safe}.html"
     exam_name = f"ExamSheet_{student_id}_{subj_safe}.html"
@@ -258,13 +254,14 @@ def api_save_local(student_id: str):
     return jsonify({
         "ok": True,
         "files": [dav_name, exam_name],
-        "dir": str(config.EXPORTS_DIR),
+        "dir": str(config.EXPORTS_DIR.resolve()),
+        "paths": [str(dav_path.resolve()), str(exam_path.resolve())],
+        "davotnoma_html": dav_html,
+        "exam_html": exam_html,
+        "davotnoma_name": dav_name,
+        "exam_name": exam_name,
     })
 
-
-# ---------------------------------------------------------------------------
-# Results API
-# ---------------------------------------------------------------------------
 
 @app.route("/api/results")
 @login_required
@@ -335,19 +332,11 @@ def api_export_xlsx():
     )
 
 
-# ---------------------------------------------------------------------------
-# Static photo serve
-# ---------------------------------------------------------------------------
-
 @app.route("/data/photos/<path:filename>")
 @login_required
 def serve_photo(filename: str):
     return send_from_directory(config.PHOTOS_DIR, filename)
 
-
-# ---------------------------------------------------------------------------
-# Boot
-# ---------------------------------------------------------------------------
 
 def main():
     db.init_db()
