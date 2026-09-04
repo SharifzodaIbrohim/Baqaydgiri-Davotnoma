@@ -45,6 +45,9 @@
       if (btn.dataset.tab === "results" && window.loadResults) {
         window.loadResults();
       }
+      if (btn.dataset.tab !== "scan" && window.scanStopCamera) {
+        window.scanStopCamera();
+      }
     });
   });
 
