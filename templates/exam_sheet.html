@@ -112,22 +112,35 @@
   </div>
 
   {% if not qr_uri %}
-  <script src="/static/js/vendor/qrcode.min.js"></script>
   <script>
-    (function () {
-      var el = document.getElementById("qrcode");
-      if (!el || typeof QRCode === "undefined") return;
-      var id = el.getAttribute("data-id") || "";
-      if (!id) return;
-      new QRCode(el, {
-        text: id,
-        width: 96,
-        height: 96,
-        colorDark: "#0a3328",
-        colorLight: "#ffffff",
-        correctLevel: QRCode.CorrectLevel.M
-      });
-    })();
+  function drawExamQr() {
+    var el = document.getElementById("qrcode");
+    if (!el || typeof QRCode === "undefined") return;
+    var id = el.getAttribute("data-id") || "";
+    if (!id) return;
+    el.innerHTML = "";
+    new QRCode(el, {
+      text: id,
+      width: 96,
+      height: 96,
+      colorDark: "#0a3328",
+      colorLight: "#ffffff",
+      correctLevel: QRCode.CorrectLevel.M
+    });
+  }
+  (function loadQrLib() {
+    if (typeof QRCode !== "undefined") { drawExamQr(); return; }
+    var s = document.createElement("script");
+    s.src = "/static/js/vendor/qrcode.min.js";
+    s.onload = drawExamQr;
+    s.onerror = function () {
+      var s2 = document.createElement("script");
+      s2.src = "https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js";
+      s2.onload = drawExamQr;
+      document.body.appendChild(s2);
+    };
+    document.body.appendChild(s);
+  })();
   </script>
   {% endif %}
 </body>
