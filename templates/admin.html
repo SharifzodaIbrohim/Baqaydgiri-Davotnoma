@@ -75,30 +75,7 @@
             <p id="regMsg" class="msg" hidden></p>
           </form>
         </div>
-        <div class="card" style="grid-column: 1 / -1">
-          <h2>Асбобҳо · Импорт ва Backup</h2>
-          <div class="tools-row">
-            <div class="tool-block">
-              <h3>Импорти Excel</h3>
-              <p class="hint">Намуна гиред, пур кунед, бор кунед.</p>
-              <div class="btn-row">
-                <a class="btn" href="/api/students/import-template.xlsx">📥 Намунаи .xlsx</a>
-                <label class="btn file-btn">Интихоби файл
-                  <input type="file" id="importFile" accept=".xlsx,.xlsm" hidden/>
-                </label>
-                <button type="button" class="btn primary" id="btnImportExcel">Импорт</button>
-              </div>
-              <p id="importMsg" class="msg" hidden></p>
-            </div>
-            <div class="tool-block">
-              <h3>Backup</h3>
-              <p class="hint">app.db + суратҳо + exports</p>
-              <div class="btn-row">
-                <a class="btn primary" href="/api/backup.zip" id="btnBackup">💾 Backup .zip</a>
-              </div>
-            </div>
-          </div>
-        </div>
+
         <div class="card">
           <h2>Рӯйхати хонандагон</h2>
           <div class="list-toolbar">
@@ -106,6 +83,31 @@
             <button type="button" class="btn" id="btnRefreshStudents">Навсозӣ</button>
           </div>
           <div id="studentList" class="student-list"></div>
+        </div>
+      </div>
+
+      <div class="card" style="margin-top:16px">
+        <h2>Асбобҳо · Импорт ва Backup</h2>
+        <div class="tools-row">
+          <div class="tool-block">
+            <h3>Импорти Excel</h3>
+            <p class="hint">Намуна гиред, пур кунед, бор кунед.</p>
+            <div class="btn-row">
+              <a class="btn" href="/api/students/import-template.xlsx">📥 Намунаи .xlsx</a>
+              <label class="btn file-btn">Интихоби файл
+                <input type="file" id="importFile" accept=".xlsx,.xlsm" hidden/>
+              </label>
+              <button type="button" class="btn primary" id="btnImportExcel">Импорт</button>
+            </div>
+            <p id="importMsg" class="msg" hidden></p>
+          </div>
+          <div class="tool-block">
+            <h3>Backup</h3>
+            <p class="hint">app.db + суратҳо + exports</p>
+            <div class="btn-row">
+              <a class="btn primary" href="/api/backup.zip" id="btnBackup">💾 Backup .zip</a>
+            </div>
+          </div>
         </div>
       </div>
     </section>
@@ -198,20 +200,13 @@
           <button type="button" class="btn" id="btnFilter">Филтр</button>
           <button type="button" class="btn primary" id="btnExport">Export .xlsx</button>
         </div>
-        <p class="hint">Холро нависед — статус (Гузашт / Нагузашт) худкор. Сканер ба сатри хонанда мебарад.</p>
+        <p class="hint">Холро нависед. Статусро худ интихоб кунед (Гузашт / Нагузашт).</p>
         <div class="table-wrap">
           <table id="resultsTable">
             <thead>
               <tr>
-                <th>Ном</th>
-                <th>ID</th>
-                <th>Мактаб</th>
-                <th>Синф</th>
-                <th>Фан</th>
-                <th>Олимпиада</th>
-                <th>Хол</th>
-                <th>Статус</th>
-                <th>Сана</th>
+                <th>Ном</th><th>ID</th><th>Мактаб</th><th>Синф</th><th>Фан</th>
+                <th>Олимпиада</th><th>Хол</th><th>Статус</th><th>Сана</th>
               </tr>
             </thead>
             <tbody></tbody>
