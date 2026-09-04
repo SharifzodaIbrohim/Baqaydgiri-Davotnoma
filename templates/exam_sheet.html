@@ -5,9 +5,8 @@
   <meta name="viewport" content="width=device-width, initial-scale=1"/>
   <title>Варақаи имтиҳонсупорӣ — {{ s.id }}</title>
   <style>
-    @page { size: A4; margin: 12mm 12mm 12mm 12mm; }
+    @page { size: A4; margin: 12mm; }
     * { box-sizing: border-box; margin: 0; padding: 0; }
-    html, body { height: 100%; }
     body {
       font-family: "Segoe UI", system-ui, sans-serif;
       color: #0a3328;
@@ -15,85 +14,52 @@
       font-size: 13px;
     }
     .toolbar {
-      display: flex;
-      gap: 8px;
-      justify-content: center;
-      padding: 10px;
+      display: flex; gap: 8px; justify-content: center; padding: 10px;
     }
     .toolbar button {
-      border: 0;
-      background: #0f4d3a;
-      color: #fff;
-      padding: 9px 16px;
-      border-radius: 8px;
-      font-weight: 700;
-      cursor: pointer;
-      font-size: 13px;
+      border: 0; background: #0f4d3a; color: #fff;
+      padding: 9px 16px; border-radius: 8px; font-weight: 700; cursor: pointer;
     }
-    .hint {
-      text-align: center;
-      font-size: 11px;
-      color: #5a7a6e;
-      margin-bottom: 8px;
-    }
+    .hint { text-align: center; font-size: 11px; color: #5a7a6e; margin-bottom: 8px; }
     .header {
-      max-width: 186mm;
-      margin: 0 auto;
-      background: #fff;
-      border: 1.5px solid #0a3328;
-      border-radius: 6px;
-      overflow: hidden;
+      max-width: 186mm; margin: 0 auto; background: #fff;
+      border: 1.5px solid #0a3328; border-radius: 6px; overflow: hidden;
     }
     .title {
       background: linear-gradient(135deg, #0a3328, #157a58);
-      color: #fff;
-      text-align: center;
-      font-weight: 800;
-      font-size: 0.88rem;
-      letter-spacing: 0.14em;
-      text-transform: uppercase;
+      color: #fff; text-align: center; font-weight: 800;
+      font-size: 0.88rem; letter-spacing: 0.14em; text-transform: uppercase;
       padding: 7px 10px;
     }
+    .row { display: flex; align-items: stretch; }
     .info {
-      display: grid;
-      grid-template-columns: 1.5fr 1.3fr 0.55fr 1.3fr;
+      flex: 1; display: grid;
+      grid-template-columns: 1.4fr 1.2fr 0.55fr 1.1fr;
     }
     .cell {
-      padding: 8px 10px;
-      border-right: 1px solid #d4e5db;
-      background: #fafdfb;
+      padding: 8px 10px; border-right: 1px solid #d4e5db; background: #fafdfb;
     }
     .cell:last-child { border-right: 0; }
     .label {
-      display: block;
-      font-size: 0.65rem;
-      text-transform: uppercase;
-      letter-spacing: 0.06em;
-      color: #5a7a6e;
-      font-weight: 700;
-      margin-bottom: 2px;
+      display: block; font-size: 0.65rem; text-transform: uppercase;
+      letter-spacing: 0.06em; color: #5a7a6e; font-weight: 700; margin-bottom: 2px;
     }
-    .value {
-      font-weight: 700;
-      font-size: 0.9rem;
-      color: #0a3328;
-      word-break: break-word;
-    }
-    .value.mono {
-      font-family: ui-monospace, Consolas, monospace;
-      font-size: 0.82rem;
-      letter-spacing: 0.03em;
-    }
+    .value { font-weight: 700; font-size: 0.88rem; color: #0a3328; word-break: break-word; }
+    .value.mono { font-family: ui-monospace, Consolas, monospace; font-size: 0.8rem; }
     .value.subject { color: #0f4d3a; }
+    .qr-box {
+      width: 118px; flex-shrink: 0; border-left: 1px solid #d4e5db;
+      display: flex; flex-direction: column; align-items: center; justify-content: center;
+      padding: 6px; background: #fff;
+    }
+    .qr-box img { width: 96px; height: 96px; object-fit: contain; }
+    .qr-box .ql {
+      font-size: 0.62rem; color: #5a7a6e; font-weight: 700; margin-top: 2px; text-align: center;
+    }
     @media print {
       body { background: #fff !important; -webkit-print-color-adjust: exact; print-color-adjust: exact; }
       .toolbar, .hint, .no-print { display: none !important; }
-      .header {
-        max-width: none;
-        margin: 0;
-        border-radius: 0;
-        page-break-after: avoid;
-      }
+      .header { max-width: none; margin: 0; border-radius: 0; }
     }
   </style>
 </head>
@@ -102,27 +68,35 @@
     <button type="button" onclick="window.print()">🖨 Чоп / Save as PDF</button>
     <button type="button" onclick="window.close()">Пӯшидан</button>
   </div>
-  <p class="hint no-print">Чоп: Paper = A4 · Headers/footers хомӯш · 1 варақ</p>
+  <p class="hint no-print">Чоп: A4 · Headers/footers хомӯш · QR = ID (танҳо дар барномаи админ хонда мешавад)</p>
 
   <div class="header">
     <div class="title">Варақаи имтиҳонсупорӣ</div>
-    <div class="info">
-      <div class="cell">
-        <span class="label">ID-и иштирокчӣ</span>
-        <span class="value mono">{{ s.id }}</span>
+    <div class="row">
+      <div class="info">
+        <div class="cell">
+          <span class="label">ID-и иштирокчӣ</span>
+          <span class="value mono">{{ s.id }}</span>
+        </div>
+        <div class="cell">
+          <span class="label">Фанни имтиҳонсупорӣ</span>
+          <span class="value subject">{{ s.subject }}</span>
+        </div>
+        <div class="cell">
+          <span class="label">Синф</span>
+          <span class="value">{{ s.class_name }}</span>
+        </div>
+        <div class="cell">
+          <span class="label">Намуди олимпиада</span>
+          <span class="value">{{ s.olympiad_title or '—' }}</span>
+        </div>
       </div>
-      <div class="cell">
-        <span class="label">Фанни имтиҳонсупорӣ</span>
-        <span class="value subject">{{ s.subject }}</span>
+      {% if qr_uri %}
+      <div class="qr-box">
+        <img src="{{ qr_uri }}" alt="QR"/>
+        <div class="ql">QR · ID</div>
       </div>
-      <div class="cell">
-        <span class="label">Синф</span>
-        <span class="value">{{ s.class_name }}</span>
-      </div>
-      <div class="cell">
-        <span class="label">Намуди олимпиада</span>
-        <span class="value">{{ s.olympiad_title or '—' }}</span>
-      </div>
+      {% endif %}
     </div>
   </div>
 </body>
