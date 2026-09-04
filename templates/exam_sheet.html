@@ -52,15 +52,8 @@
       display: flex; flex-direction: column; align-items: center; justify-content: center;
       padding: 8px 6px; background: #fff;
     }
-    .qr-box img, .qr-box canvas {
-      width: 96px !important;
-      height: 96px !important;
-      display: block;
-    }
-    #qrcode { width: 96px; height: 96px; }
-    #qrcode img, #qrcode canvas {
-      width: 96px !important;
-      height: 96px !important;
+    .qr-box img {
+      width: 96px; height: 96px; display: block; image-rendering: pixelated;
     }
     .qr-box .ql {
       font-size: 0.62rem; color: #5a7a6e; font-weight: 700; margin-top: 4px; text-align: center;
@@ -77,7 +70,7 @@
     <button type="button" onclick="window.print()">🖨 Чоп / Save as PDF</button>
     <button type="button" onclick="window.close()">Пӯшидан</button>
   </div>
-  <p class="hint no-print">Чоп: A4 · Headers/footers хомӯш · QR = ID (танҳо дар барномаи админ хонда мешавад)</p>
+  <p class="hint no-print">Чоп: A4 · Headers/footers хомӯш · QR = ID (танҳо админ дар барнома мехонад)</p>
 
   <div class="header">
     <div class="title">Варақаи имтиҳонсупорӣ</div>
@@ -102,46 +95,15 @@
       </div>
       <div class="qr-box">
         {% if qr_uri %}
-        <img src="{{ qr_uri }}" alt="QR"/>
+        <img src="{{ qr_uri }}" alt="QR" width="96" height="96"/>
         {% else %}
-        <div id="qrcode" data-id="{{ s.id }}"></div>
+        <img src="/api/qr/{{ s.id }}.png" alt="QR" width="96" height="96"
+             onerror="this.style.display='none';document.getElementById('qrFail').hidden=false"/>
+        <div id="qrFail" hidden style="font-size:10px;color:#b00;text-align:center">QR?<br>pip install qrcode[pil]</div>
         {% endif %}
         <div class="ql">QR · ID</div>
       </div>
     </div>
   </div>
-
-  {% if not qr_uri %}
-  <script>
-  function drawExamQr() {
-    var el = document.getElementById("qrcode");
-    if (!el || typeof QRCode === "undefined") return;
-    var id = el.getAttribute("data-id") || "";
-    if (!id) return;
-    el.innerHTML = "";
-    new QRCode(el, {
-      text: id,
-      width: 96,
-      height: 96,
-      colorDark: "#0a3328",
-      colorLight: "#ffffff",
-      correctLevel: QRCode.CorrectLevel.M
-    });
-  }
-  (function loadQrLib() {
-    if (typeof QRCode !== "undefined") { drawExamQr(); return; }
-    var s = document.createElement("script");
-    s.src = "/static/js/vendor/qrcode.min.js";
-    s.onload = drawExamQr;
-    s.onerror = function () {
-      var s2 = document.createElement("script");
-      s2.src = "https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js";
-      s2.onload = drawExamQr;
-      document.body.appendChild(s2);
-    };
-    document.body.appendChild(s);
-  })();
-  </script>
-  {% endif %}
 </body>
 </html>
