@@ -11,13 +11,13 @@
     <div class="brand">БАҚАЙДГИРӢ · ДАЪВАТНОМА</div>
     <nav class="tabs">
       <button type="button" class="tab active" data-tab="register">Бақайдгирӣ</button>
+      <button type="button" class="tab" data-tab="scan">Сканер / Ҳозир</button>
       <button type="button" class="tab" data-tab="results">Натиҷаҳо</button>
     </nav>
     <button type="button" id="btnLogout" class="btn ghost">Баромадан</button>
   </header>
 
   <main>
-    <!-- ========== TAB: REGISTER ========== -->
     <section id="tab-register" class="tab-panel active">
       <div class="grid-2">
         <div class="card">
@@ -50,7 +50,6 @@
               <label>Унвони олимпиада<input name="olympiad_title"/></label>
               <label>Санаи оғози олимпиада<input name="olympiad_date" type="text" placeholder="02.09.2026"/></label>
             </div>
-
             <fieldset class="photo-box">
               <legend>Сурат (JPG)</legend>
               <div class="photo-controls">
@@ -69,7 +68,6 @@
               </div>
               <input type="hidden" name="photo_base64" id="photoBase64"/>
             </fieldset>
-
             <div class="form-actions">
               <button type="submit" class="btn primary" id="btnRegister">Бақайдгирӣ + Сохтани ID</button>
               <button type="button" class="btn" id="btnSaveLocal" disabled>Захираи варақаҳо (1+2)</button>
@@ -77,7 +75,30 @@
             <p id="regMsg" class="msg" hidden></p>
           </form>
         </div>
-
+        <div class="card" style="grid-column: 1 / -1">
+          <h2>Асбобҳо · Импорт ва Backup</h2>
+          <div class="tools-row">
+            <div class="tool-block">
+              <h3>Импорти Excel</h3>
+              <p class="hint">Намуна гиред, пур кунед, бор кунед.</p>
+              <div class="btn-row">
+                <a class="btn" href="/api/students/import-template.xlsx">📥 Намунаи .xlsx</a>
+                <label class="btn file-btn">Интихоби файл
+                  <input type="file" id="importFile" accept=".xlsx,.xlsm" hidden/>
+                </label>
+                <button type="button" class="btn primary" id="btnImportExcel">Импорт</button>
+              </div>
+              <p id="importMsg" class="msg" hidden></p>
+            </div>
+            <div class="tool-block">
+              <h3>Backup</h3>
+              <p class="hint">app.db + суратҳо + exports</p>
+              <div class="btn-row">
+                <a class="btn primary" href="/api/backup.zip" id="btnBackup">💾 Backup .zip</a>
+              </div>
+            </div>
+          </div>
+        </div>
         <div class="card">
           <h2>Рӯйхати хонандагон</h2>
           <div class="list-toolbar">
@@ -89,10 +110,75 @@
       </div>
     </section>
 
-    <!-- ========== TAB: RESULTS ========== -->
+    <section id="tab-scan" class="tab-panel">
+      <div class="grid-2">
+        <div class="card">
+          <h2>Сканери QR / ID</h2>
+          <p class="hint">QR аз варақа ё ID. Танҳо админ.</p>
+          <div class="scan-id-row">
+            <input type="text" id="scanIdInput" placeholder="ID-и иштирокчӣ" autocomplete="off"/>
+            <button type="button" class="btn primary" id="btnScanLookup">Ҷустуҷӯ</button>
+          </div>
+          <fieldset class="photo-box">
+            <legend>Камера (QR)</legend>
+            <select id="scanCameraSelect"></select>
+            <div class="cam-row">
+              <video id="scanVideo" autoplay playsinline muted></video>
+              <canvas id="scanCanvas" style="display:none"></canvas>
+            </div>
+            <div class="btn-row">
+              <button type="button" class="btn" id="btnScanCamStart">Камераро кушо</button>
+              <button type="button" class="btn" id="btnScanCamStop">Қатъ</button>
+            </div>
+            <p class="hint" id="scanCamStatus">Камера хомӯш</p>
+          </fieldset>
+        </div>
+        <div class="card" id="scanResultCard">
+          <h2>Хонанда</h2>
+          <div id="scanEmpty" class="hint">ID скан/нависед</div>
+          <div id="scanResult" hidden>
+            <div class="scan-profile">
+              <img id="scanPhoto" alt="" class="scan-photo" hidden/>
+              <div>
+                <div class="scan-name" id="scanName"></div>
+                <div class="mono" id="scanId"></div>
+                <div id="scanMeta" class="scan-meta"></div>
+                <div id="scanPresentBadge" class="pill-badge"></div>
+              </div>
+            </div>
+            <div class="btn-row" style="margin-top:12px">
+              <button type="button" class="btn primary" id="btnMarkPresent">✓ Ҳозир шуд</button>
+              <button type="button" class="btn" id="btnOpenExam">Варақаи имтиҳон</button>
+              <button type="button" class="btn" id="btnOpenDav">Даъватнома</button>
+            </div>
+            <h3 style="margin-top:16px">Хол</h3>
+            <div class="score-row">
+              <label>Хол <input type="number" id="scanScore" step="0.5"/></label>
+              <label>Макс <input type="number" id="scanMax" step="1" value="100"/></label>
+              <button type="button" class="btn primary" id="btnSaveScanScore">Захира</button>
+            </div>
+            <p id="scanScoreMsg" class="hint"></p>
+          </div>
+        </div>
+      </div>
+    </section>
+
     <section id="tab-results" class="tab-panel">
       <div class="card">
-        <h2>Натиҷаҳо (дастӣ)</h2>
+        <h2>Натиҷаҳо</h2>
+        <div class="results-scan-bar">
+          <strong>Сканер (QR / ID)</strong>
+          <input type="text" id="resScanId" placeholder="ID ё QR…" autocomplete="off"/>
+          <button type="button" class="btn primary" id="btnResLookup">Ҷустуҷӯ</button>
+          <button type="button" class="btn" id="btnResCamStart">Камера</button>
+          <button type="button" class="btn ghost" id="btnResCamStop">Қатъ</button>
+          <select id="resCamSelect" style="max-width:160px"></select>
+          <span class="hint" id="resCamStatus"></span>
+        </div>
+        <div class="cam-row" id="resCamWrap" hidden>
+          <video id="resScanVideo" autoplay playsinline muted></video>
+          <canvas id="resScanCanvas" style="display:none"></canvas>
+        </div>
         <div class="filters">
           <input type="text" id="fSchool" placeholder="Мактаб"/>
           <input type="text" id="fClass" placeholder="Синф"/>
@@ -112,22 +198,20 @@
           <button type="button" class="btn" id="btnFilter">Филтр</button>
           <button type="button" class="btn primary" id="btnExport">Export .xlsx</button>
         </div>
-        <p class="hint">Ҳадди гузаштан: {{ pass_percent }}%. Холро клик карда тағйир диҳед.</p>
+        <p class="hint">Холро нависед — статус (Гузашт / Нагузашт) худкор. Сканер ба сатри хонанда мебарад.</p>
         <div class="table-wrap">
           <table id="resultsTable">
             <thead>
               <tr>
                 <th>Ном</th>
-                <th>Student ID</th>
+                <th>ID</th>
                 <th>Мактаб</th>
                 <th>Синф</th>
                 <th>Фан</th>
                 <th>Олимпиада</th>
                 <th>Хол</th>
-                <th>Макс</th>
-                <th>Фоиз</th>
                 <th>Статус</th>
-                <th>Санаи хол</th>
+                <th>Сана</th>
               </tr>
             </thead>
             <tbody></tbody>
@@ -142,7 +226,10 @@
   </script>
   <script src="/static/js/app.js"></script>
   <script src="/static/js/register.js"></script>
+  <script src="/static/js/vendor/jsQR.js" onerror="this.onerror=null;this.src='https://cdn.jsdelivr.net/npm/jsqr@1.4.0/dist/jsQR.js'"></script>
   <script src="/static/js/results.js"></script>
+  <script src="/static/js/scanner.js"></script>
+  <script src="/static/js/tools.js"></script>
   <script src="/static/js/davotnoma.js"></script>
 </body>
 </html>
