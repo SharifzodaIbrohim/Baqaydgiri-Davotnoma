@@ -140,7 +140,7 @@
           <div id="scanEmpty" class="hint">ID скан/нависед</div>
           <div id="scanResult" hidden>
             <div class="scan-profile">
-              <img id="scanPhoto" alt="" class="scan-photo" hidden/>
+              <img id="scanPhoto" class="scan-photo" alt="" hidden width="64" height="80"/>
               <div>
                 <div class="scan-name" id="scanName"></div>
                 <div class="mono" id="scanId"></div>
@@ -148,16 +148,30 @@
                 <div id="scanPresentBadge" class="pill-badge"></div>
               </div>
             </div>
-            <div class="btn-row" style="margin-top:12px">
-              <button type="button" class="btn primary" id="btnMarkPresent">✓ Ҳозир шуд</button>
+            <div class="btn-row" style="margin-top:10px">
               <button type="button" class="btn" id="btnOpenExam">Варақаи имтиҳон</button>
               <button type="button" class="btn" id="btnOpenDav">Даъватнома</button>
             </div>
-            <h3 style="margin-top:16px">Хол</h3>
+            <div class="scan-attend-row">
+              <label>Ҳозирӣ
+                <select id="scanAttendSelect">
+                  <option value="unknown">— номаълум —</option>
+                  <option value="present">✓ Ҳозир шуд</option>
+                  <option value="absent">Ҳозир нашуд</option>
+                </select>
+              </label>
+              <button type="button" class="btn primary" id="btnMarkPresent">Захираи ҳозирӣ</button>
+            </div>
             <div class="score-row">
               <label>Хол <input type="number" id="scanScore" step="0.5"/></label>
-              <label>Макс <input type="number" id="scanMax" step="1" value="100"/></label>
-              <button type="button" class="btn primary" id="btnSaveScanScore">Захира</button>
+              <label>Статус
+                <select id="scanStatusSelect">
+                  <option value="">—</option>
+                  <option value="Гузашт">Гузашт</option>
+                  <option value="Нагузашт">Нагузашт</option>
+                </select>
+              </label>
+              <button type="button" class="btn primary" id="btnSaveScanScore">Захираи хол</button>
             </div>
             <p id="scanScoreMsg" class="hint"></p>
           </div>
@@ -200,13 +214,13 @@
           <button type="button" class="btn" id="btnFilter">Филтр</button>
           <button type="button" class="btn primary" id="btnExport">Export .xlsx</button>
         </div>
-        <p class="hint">Холро нависед. Статусро худ интихоб кунед (Гузашт / Нагузашт).</p>
+        <p class="hint">Хол ва статус (Гузашт/Нагузашт) — интихоби админ. Сутуни Ҳозирӣ аз сканер.</p>
         <div class="table-wrap">
           <table id="resultsTable">
             <thead>
               <tr>
                 <th>Ном</th><th>ID</th><th>Мактаб</th><th>Синф</th><th>Фан</th>
-                <th>Олимпиада</th><th>Хол</th><th>Статус</th><th>Сана</th>
+                <th>Олимпиада</th><th>Ҳозирӣ</th><th>Хол</th><th>Статус</th><th>Сана</th>
               </tr>
             </thead>
             <tbody></tbody>
@@ -221,7 +235,8 @@
   </script>
   <script src="/static/js/app.js"></script>
   <script src="/static/js/register.js"></script>
-  <script src="/static/js/vendor/jsQR.js" onerror="this.onerror=null;this.src='https://cdn.jsdelivr.net/npm/jsqr@1.4.0/dist/jsQR.js'"></script>
+  <script src="https://cdn.jsdelivr.net/npm/jsqr@1.4.0/dist/jsQR.js"></script>
+  <script src="/static/js/vendor/jsQR.js"></script>
   <script src="/static/js/results.js"></script>
   <script src="/static/js/scanner.js"></script>
   <script src="/static/js/tools.js"></script>
