@@ -1,90 +1,82 @@
 # -*- coding: utf-8 -*-
-"""One-time: python patch_scan.py  then restart server"""
+"""Run once:  python patch_scan.py
+Adds /api/scan and /api/attendance to server.py if missing.
+"""
 from pathlib import Path
 
-p = Path(__file__).resolve().parent / "server.py"
+root = Path(__file__).resolve().parent
+p = root / "server.py"
 t = p.read_text(encoding="utf-8")
 changed = False
 
-if "from utils.qr_gen import" not in t:
+HOOK = '''
+try:
+    from utils.scan_routes import register_scan_routes
+    _has_scan = any("/api/scan/" in str(r) for r in app.url_map.iter_rules())
+    if not _has_scan:
+        register_scan_routes(app, login_required, db, jsonify, request)
+        print("Registered /api/scan routes")
+except Exception as _e:
+    print("scan_routes load:", _e)
+'''
+
+if "register_scan_routes" not in t:
+    if "\ndef main():" in t:
+        t = t.replace("\ndef main():", "\n" + HOOK + "\n\ndef main():", 1)
+        changed = True
+        print("+ hook register_scan_routes before main()")
+    elif "if __name__" in t:
+        t = t.replace("if __name__", HOOK + "\n\nif __name__", 1)
+        changed = True
+        print("+ hook before __main__")
+    else:
+        t = t + "\n" + HOOK
+        changed = True
+        print("+ hook at end")
+else:
+    print("= register_scan_routes already in server.py")
+
+if "from utils.qr_gen import" not in t and "from utils.dates import format_tj_date" in t:
     t = t.replace(
         "from utils.dates import format_tj_date",
-        "from utils.dates import format_tj_date\nfrom utils.qr_gen import qr_data_uri\n",
+        "from utils.dates import format_tj_date\nfrom utils.qr_gen import qr_data_uri",
     )
     changed = True
     print("+ qr_gen import")
 
-SCAN_BLOCK = r'''
-# --- Scanner API ---
-@app.route("/api/scan/<student_id>")
-@login_required
-def api_scan(student_id: str):
-    st = db.student_with_status(student_id.strip()) if hasattr(db, "student_with_status") else db.get_student(student_id.strip())
-    if not st:
-        return jsonify({"ok": False, "error": "Хонанда бо ин ID ёфт нашуд"}), 404
-    if hasattr(db, "get_result"):
-        res = db.get_result(student_id.strip()) or {}
-        for k in ("score", "max_score", "percent", "status", "scored_at"):
-            if k not in st:
-                st[k] = res.get(k)
-    photo_url = ""
-    if st.get("photo_path"):
-        pp = str(st["photo_path"]).replace("\\", "/")
-        photo_url = "/data/" + pp if pp.startswith("photos/") else "/data/photos/" + pp.split("/")[-1]
-    st["photo_url"] = photo_url
-    return jsonify({"ok": True, "student": st})
-
-@app.route("/api/attendance/<student_id>", methods=["POST"])
-@login_required
-def api_attendance(student_id: str):
-    body = request.get_json(silent=True) or {}
-    note = (body.get("note") or "").strip()
-    if not hasattr(db, "mark_present"):
-        return jsonify({"ok": False, "error": "mark_present нест"}), 500
-    try:
-        st = db.mark_present(student_id.strip(), note=note)
-    except TypeError:
-        st = db.mark_present(student_id.strip())
-    if not st:
-        return jsonify({"ok": False, "error": "Хонанда ёфт нашуд"}), 404
-    return jsonify({"ok": True, "student": st, "present_at": st.get("present_at")})
-
-@app.route("/api/qr/<student_id>.png")
-@login_required
-def api_qr_png(student_id: str):
-    from flask import make_response
-    import base64
-    try:
-        uri = qr_data_uri(str(student_id).strip())
-    except Exception:
-        uri = ""
-    if not uri or not str(uri).startswith("data:image/png;base64,"):
-        return "QR unavailable", 503
-    raw = base64.b64decode(str(uri).split(",", 1)[1])
-    resp = make_response(raw)
-    resp.headers["Content-Type"] = "image/png"
-    return resp
-'''
-
-if "/api/scan/" not in t:
-    if '@app.route("/data/photos/' in t:
-        t = t.replace('@app.route("/data/photos/', SCAN_BLOCK + '\n@app.route("/data/photos/', 1)
-    elif "def main():" in t:
-        t = t.replace("def main():", SCAN_BLOCK + "\ndef main():", 1)
-    else:
-        t += "\n" + SCAN_BLOCK
-    changed = True
-    print("+ /api/scan")
-else:
-    print("= scan already there")
-
 if 'host="127.0.0.1"' in t:
-    t = t.replace('host="127.0.0.1"', 'host=os.getenv("HOST", "0.0.0.0")')
+    t = t.replace('host="127.0.0.1"', 'host=__import__("os").getenv("HOST", "0.0.0.0")')
     changed = True
     print("+ host 0.0.0.0")
 
 if changed:
     p.write_text(t, encoding="utf-8")
-    print("SAVED server.py — restart python server.py")
+    print("SAVED server.py")
 else:
-    print("OK no change")
+    print("server.py OK")
+
+# Ensure utils/scan_routes.py exists
+sr = root / "utils" / "scan_routes.py"
+if not sr.is_file():
+    sr.write_text(
+        'def register_scan_routes(app, login_required, db, jsonify, request):\n'
+        '    @app.route("/api/scan/<student_id>")\n'
+        '    @login_required\n'
+        '    def api_scan(student_id: str):\n'
+        '        st = db.get_student(student_id.strip())\n'
+        '        if not st:\n'
+        '            return jsonify({"ok": False, "error": "Ёфт нашуд"}), 404\n'
+        '        st["photo_url"] = ""\n'
+        '        return jsonify({"ok": True, "student": st})\n'
+        '    @app.route("/api/attendance/<student_id>", methods=["POST"])\n'
+        '    @login_required\n'
+        '    def api_attendance(student_id: str):\n'
+        '        return jsonify({"ok": False, "error": "mark_present нест"}), 500\n',
+        encoding="utf-8",
+    )
+    print("+ created utils/scan_routes.py")
+else:
+    print("= utils/scan_routes.py exists")
+
+print("DONE — restart: python server.py")
+print("Test: http://127.0.0.1:5000/api/scan/YOUR_ID")
