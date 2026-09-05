@@ -1,27 +1,18 @@
-"""SQLite helpers for Baqaydgiri-Davotnoma."""
+"""SQLite helpers for Бақайдгирӣ-Даъватнома."""
 from __future__ import annotations
 
 import sqlite3
 from contextlib import contextmanager
-from datetime import datetime, timezone
+from datetime import datetime, timezone, timedelta
+from pathlib import Path
 from typing import Any, Dict, List, Optional
 
 from config import DB_PATH
 
 
 def _utc_now() -> str:
-    return datetime.now(timezone.utc).strftime("%Y-%m-%d %H:%M:%S")
-
-
-@contextmanager
-def get_conn():
-    conn = sqlite3.connect(str(DB_PATH))
-    conn.row_factory = sqlite3.Row
-    try:
-        yield conn
-        conn.commit()
-    finally:
-        conn.close()
+    """Wall-clock time of this PC (offline school computer)."""
+    return datetime.now().strftime("%Y-%m-%d %H:%M:%S")
 
 
 def init_db() -> None:
@@ -55,11 +46,28 @@ def init_db() -> None:
                 status TEXT DEFAULT '',
                 scored_at TEXT DEFAULT ''
             );
+            CREATE TABLE IF NOT EXISTS attendance (
+                student_id TEXT PRIMARY KEY,
+                present_at TEXT NOT NULL,
+                note TEXT DEFAULT '',
+                FOREIGN KEY (student_id) REFERENCES students(id) ON DELETE CASCADE
+            );
             """
         )
         cols = [r[1] for r in conn.execute("PRAGMA table_info(students)").fetchall()]
         if "present_at" not in cols:
             conn.execute("ALTER TABLE students ADD COLUMN present_at TEXT DEFAULT ''")
+
+
+@contextmanager
+def get_conn():
+    conn = sqlite3.connect(str(DB_PATH))
+    conn.row_factory = sqlite3.Row
+    try:
+        yield conn
+        conn.commit()
+    finally:
+        conn.close()
 
 
 def row_to_dict(row: Optional[sqlite3.Row]) -> Optional[Dict[str, Any]]:
@@ -127,13 +135,10 @@ def delete_student(student_id: str) -> bool:
         return cur.rowcount > 0
 
 
-def mark_present(student_id: str) -> Optional[Dict[str, Any]]:
-    if get_student(student_id) is None:
-        return None
-    now = _utc_now()
+def get_result(student_id: str) -> Optional[Dict[str, Any]]:
     with get_conn() as conn:
-        conn.execute("UPDATE students SET present_at = ? WHERE id = ?", (now, student_id))
-    return get_student(student_id)
+        row = conn.execute("SELECT * FROM results WHERE student_id = ?", (student_id,)).fetchone()
+        return row_to_dict(row)
 
 
 def update_result(
@@ -143,7 +148,7 @@ def update_result(
     status: Optional[str] = None,
     pass_percent: float = 70.0,
 ) -> Optional[Dict[str, Any]]:
-    """Status is MANUAL only — admin chooses Гузашт/Нагузашт. Never auto from score."""
+    """Status is MANUAL only — admin chooses. Never auto from score."""
     if get_student(student_id) is None:
         return None
     existing = get_result(student_id) or {}
@@ -173,10 +178,84 @@ def update_result(
     return get_result(student_id)
 
 
-def get_result(student_id: str) -> Optional[Dict[str, Any]]:
+def get_attendance(student_id: str) -> Optional[Dict[str, Any]]:
     with get_conn() as conn:
-        row = conn.execute("SELECT * FROM results WHERE student_id = ?", (student_id,)).fetchone()
+        row = conn.execute(
+            "SELECT * FROM attendance WHERE student_id = ?", (student_id,)
+        ).fetchone()
         return row_to_dict(row)
+
+
+def mark_present(student_id: str, note: str = "") -> Optional[Dict[str, Any]]:
+    return set_attendance(student_id, status="present", note=note)
+
+
+def set_attendance(
+    student_id: str,
+    status: str = "present",
+    note: str = "",
+) -> Optional[Dict[str, Any]]:
+    st = get_student(student_id)
+    if not st:
+        return None
+    status = (status or "present").strip().lower()
+    if status in ("ҳозир", "hozir", "yes", "1", "true", "present"):
+        status = "present"
+    elif status in ("ғоиб", "absent", "no", "0", "ҳозир нашуд"):
+        status = "absent"
+    elif status in ("", "unknown", "—", "-", "номаълум"):
+        status = "unknown"
+
+    with get_conn() as conn:
+        if status == "unknown":
+            conn.execute("DELETE FROM attendance WHERE student_id = ?", (student_id,))
+            try:
+                conn.execute("UPDATE students SET present_at = '' WHERE id = ?", (student_id,))
+            except Exception:
+                pass
+            st["present_at"] = ""
+            st["attendance_status"] = "unknown"
+            return st
+
+        if status == "present":
+            now = _utc_now()
+            att_note = note or "Ҳозир"
+            conn.execute(
+                """
+                INSERT INTO attendance (student_id, present_at, note)
+                VALUES (?, ?, ?)
+                ON CONFLICT(student_id) DO UPDATE SET
+                    present_at = excluded.present_at,
+                    note = excluded.note
+                """,
+                (student_id, now, att_note),
+            )
+            try:
+                conn.execute("UPDATE students SET present_at = ? WHERE id = ?", (now, student_id))
+            except Exception:
+                pass
+            st["present_at"] = now
+            st["attendance_status"] = "present"
+            return st
+
+        # absent
+        conn.execute(
+            """
+            INSERT INTO attendance (student_id, present_at, note)
+            VALUES (?, ?, ?)
+            ON CONFLICT(student_id) DO UPDATE SET
+                present_at = excluded.present_at,
+                note = excluded.note
+            """,
+            (student_id, "", "Ҳозир нашуд"),
+        )
+        try:
+            conn.execute("UPDATE students SET present_at = '' WHERE id = ?", (student_id,))
+        except Exception:
+            pass
+        st["present_at"] = ""
+        st["attendance_status"] = "absent"
+        return st
 
 
 def list_results(
@@ -188,10 +267,16 @@ def list_results(
     q: str = "",
 ) -> List[Dict[str, Any]]:
     sql = """
-        SELECT s.*, r.score, r.max_score, r.percent, r.status, r.scored_at,
-               s.id AS student_id
+        SELECT
+            s.id AS student_id,
+            s.last_name, s.first_name, s.patronymic,
+            s.school, s.class_name, s.gender, s.subject,
+            s.olympiad_title, s.created_at,
+            r.score, r.max_score, r.percent, r.status, r.scored_at,
+            a.present_at AS present_at, a.note AS attendance_note
         FROM students s
         LEFT JOIN results r ON r.student_id = s.id
+        LEFT JOIN attendance a ON a.student_id = s.id
         WHERE 1=1
     """
     params: List[Any] = []
@@ -233,4 +318,15 @@ def student_with_status(student_id: str) -> Optional[Dict[str, Any]]:
     st["percent"] = res.get("percent")
     st["status"] = res.get("status") or ""
     st["scored_at"] = res.get("scored_at") or ""
+    att = get_attendance(student_id) or {}
+    present_at = (att.get("present_at") or st.get("present_at") or "").strip()
+    note = (att.get("note") or "").strip()
+    if present_at:
+        st["attendance_status"] = "present"
+    elif note and ("нашуд" in note.lower() or note.lower() == "absent"):
+        st["attendance_status"] = "absent"
+    else:
+        st["attendance_status"] = "unknown"
+    st["present_at"] = present_at
+    st["attendance_note"] = note
     return st

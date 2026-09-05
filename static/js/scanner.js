@@ -1,8 +1,7 @@
-/* Scanner: robust QR + dynamic jsQR + safe JSON */
+/* Scanner: compact UI, attendance select, manual status */
 (function () {
   "use strict";
-  const tabScan = document.getElementById("tab-scan");
-  if (!tabScan) return;
+  if (!document.getElementById("tab-scan")) return;
 
   let currentId = null, camStream = null, scanTimer = null, lastScanAt = 0, lastScannedId = "";
 
@@ -22,7 +21,8 @@
   const presentBadge = document.getElementById("scanPresentBadge");
   const scanPhoto = document.getElementById("scanPhoto");
   const scanScore = document.getElementById("scanScore");
-  const scanMax = document.getElementById("scanMax");
+  const scanStatusSelect = document.getElementById("scanStatusSelect");
+  const scanAttendSelect = document.getElementById("scanAttendSelect");
   const scanScoreMsg = document.getElementById("scanScoreMsg");
 
   function setStatus(msg) { if (camStatus) camStatus.textContent = msg || ""; }
@@ -50,10 +50,10 @@
     for (var i = 0; i < urls.length; i++) {
       try {
         await loadScript(urls[i]);
-        if (getJsQR()) { setStatus("jsQR омода"); return true; }
+        if (getJsQR()) return true;
       } catch (e) {}
     }
-    setStatus("jsQR бор нашуд — интернетро санҷед");
+    setStatus("jsQR бор нашуд");
     return false;
   }
   function extractId(raw) {
@@ -76,21 +76,25 @@
       var data;
       try { data = JSON.parse(text); }
       catch (e) {
-        showEmpty("Роут /api/scan нест. Дар терминал: python patch_scan.py");
-        setStatus("Ҷавоб HTML — server.py-ро patch кунед");
+        showEmpty("Роут /api/scan нест — python patch_scan.py");
         return;
       }
       if (!data.ok) {
         showEmpty(data.error || "Ёфт нашуд");
-        setStatus("ID ёфт нашуд: " + id);
         return;
       }
       showStudent(data.student);
       setStatus("Хонда шуд: " + id);
     } catch (e) {
       showEmpty("Хато: " + e.message);
-      setStatus("Хатои шабака: " + e.message);
     }
+  }
+
+  function attendLabel(st) {
+    var a = (st.attendance_status || "").toLowerCase();
+    if (a === "present" || st.present_at) return { text: "Ҳозир: " + (st.present_at || "✓"), cls: "pill-badge pill-attend-present", val: "present" };
+    if (a === "absent") return { text: "Ҳозир нашуд", cls: "pill-badge pill-attend-absent", val: "absent" };
+    return { text: "— номаълум —", cls: "pill-badge pill-attend-unknown", val: "unknown" };
   }
 
   function showEmpty(msg) {
@@ -98,6 +102,7 @@
     if (emptyEl) { emptyEl.hidden = false; emptyEl.textContent = msg || "ID скан/нависед"; }
     if (resultEl) resultEl.hidden = true;
   }
+
   function showStudent(s) {
     currentId = s.id;
     if (emptyEl) emptyEl.hidden = true;
@@ -105,17 +110,19 @@
     if (scanName) scanName.textContent = [s.last_name, s.first_name, s.patronymic].filter(Boolean).join(" ");
     if (scanIdEl) scanIdEl.textContent = s.id;
     if (scanMeta) scanMeta.textContent = (s.school || "") + " · " + (s.class_name || "") + " · " + (s.subject || "");
+    var att = attendLabel(s);
     if (presentBadge) {
-      if (s.present_at) { presentBadge.textContent = "Ҳозир: " + s.present_at; presentBadge.className = "pill-badge ok"; }
-      else { presentBadge.textContent = "Ҳанӯз ҳузур қайд нашудааст"; presentBadge.className = "pill-badge"; }
+      presentBadge.textContent = att.text;
+      presentBadge.className = att.cls;
     }
+    if (scanAttendSelect) scanAttendSelect.value = att.val;
     if (scanPhoto) {
       if (s.photo_url) { scanPhoto.src = s.photo_url; scanPhoto.hidden = false; }
       else scanPhoto.hidden = true;
     }
     if (scanScore) scanScore.value = s.score != null ? s.score : "";
-    if (scanMax) scanMax.value = s.max_score != null ? s.max_score : 100;
-    if (scanScoreMsg) scanScoreMsg.textContent = s.status ? "Статус: " + s.status : "";
+    if (scanStatusSelect) scanStatusSelect.value = s.status || "";
+    if (scanScoreMsg) scanScoreMsg.textContent = "";
   }
 
   if (btnLookup) btnLookup.addEventListener("click", function () { lookup(idInput ? idInput.value : ""); });
@@ -126,13 +133,21 @@
   var btnMark = document.getElementById("btnMarkPresent");
   if (btnMark) btnMark.addEventListener("click", async function () {
     if (!currentId) return;
+    var status = scanAttendSelect ? scanAttendSelect.value : "present";
     try {
       var res = await fetch("/api/attendance/" + encodeURIComponent(currentId), {
-        method: "POST", headers: { "Content-Type": "application/json" }, body: "{}"
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ status: status }),
       });
       var data = await res.json();
       if (!data.ok) { alert(data.error || "Хато"); return; }
-      if (presentBadge) { presentBadge.textContent = "Ҳозир: " + (data.present_at || "ҳозир"); presentBadge.className = "pill-badge ok"; }
+      var st = data.student || {};
+      st.attendance_status = data.attendance_status || status;
+      st.present_at = data.present_at || st.present_at || "";
+      var att = attendLabel(st);
+      if (presentBadge) { presentBadge.textContent = att.text; presentBadge.className = att.cls; }
+      if (scanAttendSelect) scanAttendSelect.value = att.val;
     } catch (e) { alert(e.message); }
   });
 
@@ -149,15 +164,23 @@
   if (btnSaveScore) btnSaveScore.addEventListener("click", async function () {
     if (!currentId) return;
     var score = scanScore && scanScore.value !== "" ? Number(scanScore.value) : null;
-    var maxScore = scanMax && scanMax.value !== "" ? Number(scanMax.value) : 100;
+    var status = scanStatusSelect ? scanStatusSelect.value : "";
     try {
       var res = await fetch("/api/results/" + encodeURIComponent(currentId), {
-        method: "PUT", headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ score: score, maxScore: maxScore })
+        method: "PUT",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ score: score, maxScore: 100, status: status }),
       });
       var data = await res.json();
-      if (scanScoreMsg) scanScoreMsg.textContent = data.ok ? "Захира шуд" : (data.error || "Хато");
-    } catch (e) { if (scanScoreMsg) scanScoreMsg.textContent = e.message; }
+      if (!data.ok) {
+        if (scanScoreMsg) scanScoreMsg.textContent = data.error || "Хато";
+        return;
+      }
+      if (scanScoreMsg) scanScoreMsg.textContent = "Захира шуд" + (data.result && data.result.status ? " · " + data.result.status : "");
+      if (scanStatusSelect && data.result) scanStatusSelect.value = data.result.status || "";
+    } catch (e) {
+      if (scanScoreMsg) scanScoreMsg.textContent = e.message;
+    }
   });
 
   async function listCameras() {
@@ -188,15 +211,15 @@
   async function startCamera() {
     stopCamera();
     if (!navigator.mediaDevices || !navigator.mediaDevices.getUserMedia) {
-      setStatus("Браузер камераро дастгирӣ намекунад (Chrome/Edge)");
+      setStatus("Chrome/Edge лозим аст");
       return;
     }
     if (!(await ensureJsQR())) return;
-    setStatus("Камера кушода мешавад…");
+    setStatus("Камера…");
     try {
-      var constraints = { audio: false, video: { facingMode: { ideal: "environment" }, width: { ideal: 1280 }, height: { ideal: 720 } } };
+      var constraints = { audio: false, video: { facingMode: { ideal: "environment" }, width: { ideal: 640 }, height: { ideal: 480 } } };
       if (camSelect && camSelect.value) {
-        constraints.video = { deviceId: { exact: camSelect.value }, width: { ideal: 1280 }, height: { ideal: 720 } };
+        constraints.video = { deviceId: { exact: camSelect.value }, width: { ideal: 640 }, height: { ideal: 480 } };
       }
       camStream = await navigator.mediaDevices.getUserMedia(constraints);
       video.srcObject = camStream;
@@ -204,21 +227,21 @@
       video.muted = true;
       await video.play();
       await listCameras();
-      setStatus("QR-ро ба камера нишон диҳед…");
+      setStatus("QR-ро нишон диҳед…");
       lastScannedId = "";
       tick();
     } catch (e) {
-      setStatus("Камера: " + (e.message || e.name || e));
+      setStatus("Камера: " + (e.message || e.name));
     }
   }
 
   function tick() {
     if (!camStream || !video) return;
     var decoder = getJsQR();
-    if (!decoder) { setStatus("jsQR нест"); return; }
+    if (!decoder) return;
     if (video.readyState >= 2 && video.videoWidth > 0) {
       try {
-        var maxW = 640, vw = video.videoWidth, vh = video.videoHeight;
+        var maxW = 480, vw = video.videoWidth, vh = video.videoHeight;
         var scale = vw > maxW ? maxW / vw : 1;
         var w = Math.max(1, Math.floor(vw * scale));
         var h = Math.max(1, Math.floor(vh * scale));
@@ -243,9 +266,8 @@
 
   if (btnCamStart) btnCamStart.addEventListener("click", startCamera);
   if (btnCamStop) btnCamStop.addEventListener("click", stopCamera);
-  if (camSelect) camSelect.addEventListener("change", function () { if (camStream) startCamera(); });
 
-  setTimeout(function () { ensureJsQR().then(function (ok) { if (ok) setStatus("Камераро кушоед, QR-ро нишон диҳед"); }); }, 200);
+  setTimeout(function () { ensureJsQR().then(function (ok) { if (ok) setStatus("Камераро кушоед"); }); }, 200);
   listCameras();
   window.scanLookup = lookup;
   window.scanStopCamera = stopCamera;
