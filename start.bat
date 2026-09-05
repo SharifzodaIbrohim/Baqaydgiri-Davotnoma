@@ -1,73 +1,85 @@
 @echo off
-chcp 65001 >nul
+setlocal EnableExtensions
 cd /d "%~dp0"
+title Baqaydgiri-Davotnoma
 
-title Бақайдгирӣ-Даъватнома
 echo ========================================
-echo   Бақайдгирӣ · Даъватнома  (offline)
+echo   Baqaydgiri-Davotnoma  (offline)
 echo ========================================
 echo.
+echo Folder: %CD%
+echo.
 
-where py >nul 2>&1
-if %errorlevel%==0 (
-  set PY=py -3
-) else (
-  where python >nul 2>&1
-  if %errorlevel%==0 (
-    set PY=python
-  ) else (
-    echo [Хато] Python ёфт нашуд.
-    echo Python 3.10+ насб кунед: https://www.python.org/downloads/
-    echo Вақти насб: "Add python.exe to PATH" -ро фаъол кунед.
-    pause
-    exit /b 1
-  )
+set "PY="
+where py >nul 2>&1 && set "PY=py -3"
+if not defined PY where python >nul 2>&1 && set "PY=python"
+if not defined PY where python3 >nul 2>&1 && set "PY=python3"
+
+if not defined PY (
+  echo [ERROR] Python not found in PATH.
+  echo Install Python 3.10+ from https://www.python.org/downloads/
+  echo During setup enable: Add python.exe to PATH
+  echo.
+  pause
+  exit /b 1
+)
+
+echo Using: %PY%
+%PY% --version
+echo.
+
+if not exist "server.py" (
+  echo [ERROR] server.py not found in this folder.
+  pause
+  exit /b 1
 )
 
 if not exist ".venv\Scripts\python.exe" (
-  echo [1/3] Сохтани муҳити virtual...
+  echo [1/3] Creating .venv ...
   %PY% -m venv .venv
   if errorlevel 1 (
-    echo [Хато] venv сохта нашуд.
+    echo [ERROR] Could not create venv
     pause
     exit /b 1
   )
 )
 
-set VENV_PY=.venv\Scripts\python.exe
-set VENV_PIP=.venv\Scripts\pip.exe
+set "VENV_PY=%CD%\.venv\Scripts\python.exe"
+set "VENV_PIP=%CD%\.venv\Scripts\pip.exe"
 
-echo [2/3] Санҷиши бастаҳо...
-"%VENV_PIP%" install -q -r requirements.txt
+if not exist "%VENV_PY%" (
+  echo [ERROR] .venv\Scripts\python.exe missing
+  pause
+  exit /b 1
+)
+
+echo [2/3] Installing packages (first time needs internet)...
+"%VENV_PIP%" install -r requirements.txt
 if errorlevel 1 (
-  echo [Хато] pip install ноком. Интернет лозим аст (як бор).
+  echo [ERROR] pip install failed. Check internet, then try again.
   pause
   exit /b 1
 )
 
 if not exist ".env" (
-  if exist ".env.example" (
-    copy /Y ".env.example" ".env" >nul
-    echo [.env] аз .env.example сохта шуд.
-  )
+  if exist ".env.example" copy /Y ".env.example" ".env" >nul
 )
 
 if exist "patch_scan.py" (
+  echo Running patch_scan.py ...
   "%VENV_PY%" patch_scan.py
 )
 
-echo [3/3] Сервер оғоз...
 echo.
-echo   Браузер:  http://127.0.0.1:5000
-echo   Логин:    аз файли .env
-echo   Қать:     ин равзанаро пӯшед ё Ctrl+C
+echo [3/3] Starting server...
+echo Open browser: http://127.0.0.1:5000
+echo Close this window or press Ctrl+C to stop.
 echo ========================================
 echo.
 
 start "" "http://127.0.0.1:5000"
-
 "%VENV_PY%" server.py
 
 echo.
-echo Сервер қатъ шуд.
+echo Server stopped.
 pause
