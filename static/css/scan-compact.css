@@ -1,0 +1,40 @@
+/* Extra compact rules — linked from admin if needed */
+#scanPhoto,
+img.scan-photo,
+.scan-profile img {
+  width: 64px !important;
+  height: 80px !important;
+  max-width: 64px !important;
+  max-height: 80px !important;
+  object-fit: cover !important;
+  border-radius: 6px !important;
+}
+#scanVideo {
+  max-width: 280px !important;
+  max-height: 160px !important;
+  object-fit: cover !important;
+}
+#tab-scan .cam-row { max-width: 280px !important; }
+.scan-attend-row {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
+  align-items: flex-end;
+  margin: 10px 0;
+}
+.scan-attend-row label,
+.score-row label {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  font-size: 0.85rem;
+  font-weight: 700;
+}
+.scan-attend-row select,
+.score-row select {
+  padding: 7px 10px;
+  border: 1.5px solid #c5d5cc;
+  border-radius: 8px;
+  font-weight: 600;
+  min-width: 140px;
+}
